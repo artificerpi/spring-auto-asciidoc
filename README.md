@@ -1,0 +1,1 @@
+https://github.com/gradle/gradle/blob/master/subprojects/plugins/src/main/java/org/gradle/api/plugins/JavaPlugin.java

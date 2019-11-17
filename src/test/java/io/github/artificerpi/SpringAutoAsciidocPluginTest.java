@@ -3,21 +3,22 @@
  */
 package io.github.artificerpi;
 
-import org.gradle.testfixtures.ProjectBuilder;
+import static org.junit.Assert.assertNotNull;
 import org.gradle.api.Project;
+import org.gradle.testfixtures.ProjectBuilder;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
  * A simple unit test for the 'io.github.artificerpi.greeting' plugin.
  */
 public class SpringAutoAsciidocPluginTest {
-    @Test public void pluginRegistersATask() {
-        // Create a test project and apply the plugin
-        Project project = ProjectBuilder.builder().build();
-        project.getPlugins().apply("io.github.artificerpi.greeting");
+  @Test
+  public void pluginRegistersATask() {
+    // Create a test project and apply the plugin
+    Project project = ProjectBuilder.builder().build();
+    project.getPlugins().apply("io.github.artificerpi.greeting");
 
-        // Verify the result
-        assertNotNull(project.getTasks().findByName("greeting"));
-    }
+    // Verify the result
+    assertNotNull(project.getTasks().findByName("greeting"));
+  }
 }
