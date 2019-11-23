@@ -19,11 +19,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
 import org.asciidoctor.gradle.AsciidoctorPlugin;
 import org.asciidoctor.gradle.AsciidoctorTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.artifacts.DependencyResolutionListener;
+import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
@@ -36,11 +39,8 @@ import org.gradle.external.javadoc.JavadocMemberLevel;
  */
 public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   private static final String JSONDOCLET_CONFIG_NAME = "jsondoclet";
-  private static final String SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY =
-      "capital.scalable:spring-auto-restdocs-core:";
-  private static final String SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY =
-      "capital.scalable:spring-auto-restdocs-json-doclet:";
-
+  private static final String SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY = "capital.scalable:spring-auto-restdocs-core:";
+  private static final String SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY = "capital.scalable:spring-auto-restdocs-json-doclet:";
 
   @Override
   public void apply(Project project) {
@@ -57,8 +57,7 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     testTask.dependsOn("jsonDoclet");
     testTask.getActions().add(e -> {
       System.setProperty("org.springframework.restdocs.outputDir", snippetsDir.getAbsolutePath());
-      System.setProperty("org.springframework.restdocs.javadocJsonDir",
-          javadocJsonDir.getAbsolutePath());
+      System.setProperty("org.springframework.restdocs.javadocJsonDir", javadocJsonDir.getAbsolutePath());
     });
 
     registerJsonDocletTask(project);
@@ -82,11 +81,8 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     asciidoctor.doLast(task -> {
       try {
         new File(project.getBuildDir(), "resources/main/public").mkdirs();
-        Files.copy(
-            Paths.get(new File(project.getBuildDir(), "generated-docs/html5/index.html")
-                .getAbsolutePath()),
-            Paths.get(new File(project.getBuildDir(), "resources/main/public/index.html")
-                .getAbsolutePath()),
+        Files.copy(Paths.get(new File(project.getBuildDir(), "generated-docs/html5/index.html").getAbsolutePath()),
+            Paths.get(new File(project.getBuildDir(), "resources/main/public/index.html").getAbsolutePath()),
             StandardCopyOption.REPLACE_EXISTING);
       } catch (IOException e1) {
         e1.printStackTrace();
@@ -95,16 +91,25 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   }
 
   private void configureDependencies(Project project) {
-    String version = "2.0.6";
-    project.getDependencies().add(JSONDOCLET_CONFIG_NAME,
-        SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version);
-    project.getDependencies().add("testImplementation",
-        SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version);
+    final String version = "2.0.6";
+    project.getGradle().addListener(new DependencyResolutionListener() {
+      @Override
+      public void beforeResolve(ResolvableDependencies resolvableDependencies) {
+        project.getConfigurations().getByName("testCompile").getDependencies()
+            .add(project.getDependencies().create(SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version));
+        project.getConfigurations().getByName(JSONDOCLET_CONFIG_NAME).getDependencies()
+            .add(project.getDependencies().create(SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version));
+        project.getGradle().removeListener(this);
+      }
+
+      @Override
+      public void afterResolve(ResolvableDependencies resolvableDependencies) {
+      }
+    });
   }
 
   private void registerJsonDocletTask(Project project) {
-    final JavaPluginConvention javaPlugin =
-        project.getConvention().getPlugin(JavaPluginConvention.class);
+    final JavaPluginConvention javaPlugin = project.getConvention().getPlugin(JavaPluginConvention.class);
     final SourceSetContainer sourceSets = javaPlugin.getSourceSets();
     final SourceSet mainSourceSet = sourceSets.getByName("main");
 
@@ -116,8 +121,7 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
       task.setDestinationDir(new File(project.getBuildDir(), "generated-javadoc-json"));
       task.options(option -> {
         option.setDoclet("capital.scalable.restdocs.jsondoclet.ExtractDocumentationAsJsonDoclet");
-        option.setDocletpath(new ArrayList<>(
-            project.getConfigurations().getByName(JSONDOCLET_CONFIG_NAME).getFiles()));
+        option.setDocletpath(new ArrayList<>(project.getConfigurations().getByName(JSONDOCLET_CONFIG_NAME).getFiles()));
         option.setMemberLevel(JavadocMemberLevel.PACKAGE);
       });
     });
@@ -174,13 +178,12 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
 
         IntStream.range(0, snippetNameList.size()).forEach(i -> {
           String snippetName = snippetNameList.get(i);
-          List<String> snippetMethodNameList =
-              Arrays.asList(snippetDirList.get(i).listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File current, String name) {
-                  return new File(current, name).isDirectory();
-                }
-              })).stream().map(file -> file.getName()).collect(Collectors.toList());
+          List<String> snippetMethodNameList = Arrays.asList(snippetDirList.get(i).listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File current, String name) {
+              return new File(current, name).isDirectory();
+            }
+          })).stream().map(file -> file.getName()).collect(Collectors.toList());
 
           project.copy(c2 -> {
             // FIXME
