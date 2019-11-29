@@ -2,6 +2,8 @@
 
 [中文](./README-zh.md)
 
+[![Build Status](https://cloud.drone.io/api/badges/artificerpi/spring-auto-asciidoc/status.svg)](https://cloud.drone.io/artificerpi/spring-auto-asciidoc)
+
 ## Usage
 
 ```groovy
