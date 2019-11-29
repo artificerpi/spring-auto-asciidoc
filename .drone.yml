@@ -8,3 +8,4 @@ steps:
   image: gradle
   commands:
     - gradle clean build
+    - gradle publishPlugins -Pgradle.publish.key=${gradlePublishKey} -Pgradle.publish.secret=${gradlePublishSecret
