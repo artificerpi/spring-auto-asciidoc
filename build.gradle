@@ -30,7 +30,7 @@ gradlePlugin {
     plugins {
         springAutoAsciidocPlugin {
             id = 'io.github.artificerpi.spring-auto-asciidoc'
-            displayName = 'Plugin for auto genenrating documentation based on spring tests'
+            displayName = 'spring-auto-asciidoc'
             description = 'A plugin for auto genenrating documentation based on spring tests'
             implementationClass = 'io.github.artificerpi.SpringAutoAsciidocPlugin'
         }
