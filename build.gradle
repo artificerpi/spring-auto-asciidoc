@@ -4,6 +4,7 @@ plugins {
     id 'java'
     id 'eclipse'
     id 'maven-publish'
+    id "org.ajoberstar.reckon" version "0.12.0"
 }
 
 repositories {
@@ -16,8 +17,6 @@ dependencies {
     testImplementation 'junit:junit:4.12'
 }
 
-group = "io.github.artificerpi"
-version = publishVersion
 
 pluginBundle {
   website = 'https://artificerpi.github.io/spring-auto-asciidoc'
@@ -56,6 +55,16 @@ check {
     // Run the functional tests as part of `check`
     dependsOn(tasks.functionalTest)
 }
+
+reckon {
+  scopeFromProp()
+  snapshotFromProp()
+}
+reckonTagCreate.dependsOn check
+publishVersion=publishVersion ? publishVersion : project.version.toString()
+
+group = "io.github.artificerpi"
+version = publishVersion
 
 publishing {
     repositories {
