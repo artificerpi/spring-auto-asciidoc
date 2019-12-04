@@ -3,6 +3,11 @@ name: default
 kind: pipeline
 type: docker
 
+clone:
+  git:
+    image: plugins/git
+    tags: true
+
 steps:
 - name: build
   image: gradle:6.0.1
