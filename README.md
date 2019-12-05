@@ -23,11 +23,11 @@ asciidoctor {
 No extra configuration is needed!
 
 ## Build and release
-Release of this plugin is managed with `org.ajoberstar.reckon` plugin.
+Release of this plugin is managed with `nebula.release` plugin.
 
 For covenience, just create a new git tag in `<major>.<minor>.<patch>` format, e.g, `0.0.1`.
 
 ```bash
 # create a new tag on master branch for release with gradle command
-./gradlew clean build reckonTagPush -Preckon.scope=minor -Preckon.stage=final
+./gradlew clean build final
 ```
