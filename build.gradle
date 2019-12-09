@@ -110,9 +110,3 @@ eclipse {
         }
     }
 }
-
-nebulaRelease {
-    releaseBranchPatterns = [/master/, /develop/, /HEAD/, /(release(-|\/))?\d+(\.\d+)?\.x/, /v?\d+\.\d+\.\d+/]
-//   releaseBranchPatterns = [master, develop HEAD, (release(-|\/))?\d+(\.\d+)?\.x, v?\d+\.\d+\.\d+]
-  addReleaseBranchPattern(/master/)
-}
