@@ -27,6 +27,8 @@ Release of this plugin is managed with `nebula.release` plugin.
 
 For covenience, just create a new git tag in `<major>.<minor>.<patch>` format, e.g, `0.0.1`.
 
+> Tips: Merge codes and tags ref from master branch into develop again before new release lifecycle.
+
 ```bash
 # create a new tag on master branch for release with gradle command
 ./gradlew clean build final
