@@ -3,12 +3,17 @@ name: default
 kind: pipeline
 type: docker
 
-clone:
-  git:
-    image: plugins/git
-    tags: true
+
+
+   
+
 
 steps:
+- name: fetch
+  image: alpine/git
+  commands:
+  - git fetch --tags
+  
 - name: build
   image: gradle:6.0.1
   environment:

@@ -25,6 +25,7 @@ import org.asciidoctor.gradle.AsciidoctorTask;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.DependencyResolutionListener;
 import org.gradle.api.artifacts.ResolvableDependencies;
 import org.gradle.api.plugins.JavaPlugin;
@@ -38,7 +39,8 @@ import org.gradle.external.javadoc.JavadocMemberLevel;
  * Spring Rest Docs Auto plugin
  */
 public class SpringAutoAsciidocPlugin implements Plugin<Project> {
-  private static final String JSONDOCLET_CONFIG_NAME = "jsondoclet";
+  private static final String JSONDOCLET = "jsondoclet";
+  private static final String JSON_DOCLET_TASK = "jsonDoclet";
   private static final String SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY = "capital.scalable:spring-auto-restdocs-core:";
   private static final String SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY = "capital.scalable:spring-auto-restdocs-json-doclet:";
 
@@ -49,12 +51,13 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     File javadocJsonDir = new File(project.getBuildDir(), "generated-javadoc-json");
 
     project.getPluginManager().apply(AsciidoctorPlugin.class);
-    project.getConfigurations().create(JSONDOCLET_CONFIG_NAME);
-
+    Configuration configuration = project.getConfigurations().maybeCreate(JSONDOCLET);
+    
+//    project.getPlugins().withType(arg0, arg1)
     configureDependencies(project);
 
     Task testTask = project.getTasks().getByName("test");
-    testTask.dependsOn("jsonDoclet");
+    testTask.dependsOn(JSON_DOCLET_TASK);
     testTask.getActions().add(e -> {
       System.setProperty("org.springframework.restdocs.outputDir", snippetsDir.getAbsolutePath());
       System.setProperty("org.springframework.restdocs.javadocJsonDir", javadocJsonDir.getAbsolutePath());
@@ -97,7 +100,7 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
       public void beforeResolve(ResolvableDependencies resolvableDependencies) {
         project.getConfigurations().getByName("testCompile").getDependencies()
             .add(project.getDependencies().create(SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version));
-        project.getConfigurations().getByName(JSONDOCLET_CONFIG_NAME).getDependencies()
+        project.getConfigurations().getByName(JSONDOCLET).getDependencies()
             .add(project.getDependencies().create(SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version));
         project.getGradle().removeListener(this);
       }
@@ -114,14 +117,14 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     final SourceSet mainSourceSet = sourceSets.getByName("main");
 
     // https://docs.gradle.org/current/javadoc/org/gradle/api/tasks/javadoc/Javadoc.html
-    project.getTasks().register("jsonDoclet", Javadoc.class, task -> {
+    project.getTasks().register(JSON_DOCLET_TASK, Javadoc.class, task -> {
       task.dependsOn(JavaPlugin.COMPILE_JAVA_TASK_NAME);
       task.setSource(mainSourceSet.getAllJava());
       task.setClasspath(mainSourceSet.getCompileClasspath());
       task.setDestinationDir(new File(project.getBuildDir(), "generated-javadoc-json"));
       task.options(option -> {
         option.setDoclet("capital.scalable.restdocs.jsondoclet.ExtractDocumentationAsJsonDoclet");
-        option.setDocletpath(new ArrayList<>(project.getConfigurations().getByName(JSONDOCLET_CONFIG_NAME).getFiles()));
+        option.setDocletpath(new ArrayList<>(project.getConfigurations().getByName(JSONDOCLET).getFiles()));
         option.setMemberLevel(JavadocMemberLevel.PACKAGE);
       });
     });
