@@ -4,7 +4,11 @@
 
 [![Build Status](https://cloud.drone.io/api/badges/artificerpi/spring-auto-asciidoc/status.svg)](https://cloud.drone.io/artificerpi/spring-auto-asciidoc)
 
-
+  [![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=artificerpi_spring-auto-asciidoc&metric=alert_status)](https://sonarcloud.io/dashboard?id=artificerpi_spring-auto-asciidoc) 
+ [![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=artificerpi_spring-auto-asciidoc&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=artificerpi_spring-auto-asciidoc)
+ [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=artificerpi_spring-auto-asciidoc&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=artificerpi_spring-auto-asciidoc)
+ [![SonarCloud Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=artificerpi_spring-auto-asciidoc&metric=vulnerabilities)](https://sonarcloud.io/component_measures/metric/security_rating/list?id=artificerpi_spring-auto-asciidoc)
+ 
 ## Usage
 
 ```groovy
