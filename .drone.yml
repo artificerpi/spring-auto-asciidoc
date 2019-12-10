@@ -17,13 +17,17 @@ steps:
 - name: build
   image: gradle:6.0.1
   environment:
+    GRADLE_USER_HOME: ~/.gradle
     GPR_USER:
       from_secret: gpr_user
     GPR_API_KEY:
       from_secret: gpr_key
+    SONARCLOUD_TOKEN:
+      from_secret: sonarcloud_token
   commands:
     - gradle -x functionTest clean build snapshot
     - gradle publishGprPublicationToGitHubPackagesRepository snapshot
+    - "gradle sonarqube -Dsonar.login=$SONARCLOUD_TOKEN"
   when:
     branch:
     - develop
