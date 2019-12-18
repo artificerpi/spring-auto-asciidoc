@@ -4,7 +4,6 @@
 package io.github.artificerpi;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -25,8 +24,8 @@ import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.DependencyResolutionListener;
-import org.gradle.api.artifacts.ResolvableDependencies;
+import org.gradle.api.artifacts.DependencySet;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
@@ -38,6 +37,10 @@ import org.gradle.external.javadoc.JavadocMemberLevel;
  * Spring Rest Docs Auto plugin
  */
 public class SpringAutoAsciidocPlugin implements Plugin<Project> {
+  private static final String ASCIIDOCTOR_TASK_NAME = "asciidoctor";
+  private static final String DEFAULT_CONTROLLER_TEST_CLASS_NAME_PATTERN =
+      "(\\w+\\-\\w+)-rest-controller-tests";
+  private static final String ASCIIDOC_TEMPLATE_TASK_NAME = "asciidocTemplate";
   private static final String JSONDOCLET = "jsondoclet";
   private static final String JSON_DOCLET_TASK = "jsonDoclet";
   private static final String SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY =
@@ -45,22 +48,53 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   private static final String SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY =
       "capital.scalable:spring-auto-restdocs-json-doclet:";
 
+  private Project project;
+  private File snippetsDir;
+  private File javadocJsonDir;
+
+  // Main logic goes here.
   @Override
   public void apply(Project project) {
+    this.project = project;
+    this.snippetsDir = new File(project.getBuildDir(), "generated-snippets");
+    this.javadocJsonDir = new File(project.getBuildDir(), "generated-javadoc-json");
 
-    // TODO extract it to global variables
-    // Set output directories
-    File snippetsDir = new File(project.getBuildDir(), "generated-snippets");
-    File javadocJsonDir = new File(project.getBuildDir(), "generated-javadoc-json");
-
-    // Apply Plugins
+    // Apply fundamental plugins
     project.getPluginManager().apply(AsciidoctorPlugin.class);
     project.getPluginManager().apply(JavaPlugin.class);
-    project.getConfigurations().maybeCreate(JSONDOCLET);
 
-    configureDependencies(project);
+    configureProjectDependencies();
+    
+    addJsonDocletTask();
+    addAsciidocTemplateTask();
 
-    // TODO extract to methods and set tasks dependencies clearly
+    configureTestTask();
+    configureAsciidoctorTask();
+  }
+
+
+  private void configureProjectDependencies() {
+    final String version = "2.0.6";
+    Configuration jsonDocletConfig = project.getConfigurations().maybeCreate(JSONDOCLET);
+    configureDependencies(jsonDocletConfig,
+        Arrays.asList(SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version));
+
+    Configuration compileConfig =
+        project.getConfigurations().getByName(JavaPlugin.TEST_COMPILE_CONFIGURATION_NAME);
+    configureDependencies(compileConfig,
+        Arrays.asList(SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version));
+  }
+
+  private void configureDependencies(Configuration configuration,
+      List<String> dependencyNotations) {
+    configuration.getIncoming().beforeResolve((resolvableDependencies) -> {
+      DependencyHandler dependencyHandler = project.getDependencies();
+      DependencySet dependencies = configuration.getDependencies();
+      dependencyNotations.stream().forEach(d -> dependencies.add(dependencyHandler.create(d)));
+    });
+  }
+
+  private void configureTestTask() {
     Task testTask = project.getTasks().getByName(JavaPlugin.TEST_TASK_NAME);
     testTask.dependsOn(JSON_DOCLET_TASK);
     testTask.getActions().add(e -> {
@@ -68,33 +102,10 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
       System.setProperty("org.springframework.restdocs.javadocJsonDir",
           javadocJsonDir.getAbsolutePath());
     });
-
-    registerJsonDocletTask(project);
-    registerAsciidocTemplateTask(project);
-    configureAsciidoctorTask(project, testTask, snippetsDir);
-
   }
 
 
-  private void configureDependencies(Project project) {
-    final String version = "2.0.6";
-    project.getGradle().addListener(new DependencyResolutionListener() {
-      @Override
-      public void beforeResolve(ResolvableDependencies resolvableDependencies) {
-        project.getConfigurations().getByName(JavaPlugin.TEST_COMPILE_CONFIGURATION_NAME)
-            .getDependencies()
-            .add(project.getDependencies().create(SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version));
-        project.getConfigurations().getByName(JSONDOCLET).getDependencies().add(project
-            .getDependencies().create(SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version));
-        project.getGradle().removeListener(this);
-      }
-
-      @Override
-      public void afterResolve(ResolvableDependencies resolvableDependencies) {}
-    });
-  }
-
-  private void registerJsonDocletTask(Project project) {
+  private void addJsonDocletTask() {
     final JavaPluginConvention javaPlugin =
         project.getConvention().getPlugin(JavaPluginConvention.class);
     final SourceSetContainer sourceSets = javaPlugin.getSourceSets();
@@ -115,22 +126,20 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     });
   }
 
-  private void registerAsciidocTemplateTask(Project project) {
-    project.getTasks().register("asciidocTemplate", task -> {
-
+  private void addAsciidocTemplateTask() {
+    project.getTasks().register(ASCIIDOC_TEMPLATE_TASK_NAME, task -> {
       task.dependsOn(JavaPlugin.TEST_TASK_NAME);
 
-      AsciidoctorTask asciidoctor = (AsciidoctorTask) project.getTasks().getByName("asciidoctor");
+      AsciidoctorTask asciidoctor =
+          (AsciidoctorTask) project.getTasks().getByName(ASCIIDOCTOR_TASK_NAME);
       String regex = Objects.toString(asciidoctor.getAttributes().get("classNamePattern"),
-          "(\\w+\\-\\w+)-rest-controller-tests");
+          DEFAULT_CONTROLLER_TEST_CLASS_NAME_PATTERN);
       Pattern p = Pattern.compile(regex);
       List<File> snippetDirList = new ArrayList<>();
       List<String> snippetNameList = new ArrayList<>();
 
       task.doFirst(e -> {
-        File snippetsDir = new File(project.getBuildDir(), "generated-snippets");
         snippetsDir.mkdirs();
-
         File[] directories = snippetsDir.listFiles(
             (current, name) -> name.matches(regex) && new File(current, name).isDirectory());
 
@@ -168,7 +177,6 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
               .stream().map(File::getName).collect(Collectors.toList());
 
           project.copy(c2 -> {
-            // FIXME
             c2.from("src/docs/asciidoc/snippet.adoc.template");
             c2.into(new File(project.getBuildDir(), "docs/asciidoc"));
             c2.rename(file -> snippetName + ".adoc");
@@ -182,10 +190,10 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     });
   }
 
-  private void configureAsciidoctorTask(Project project, Task testTask, File snippetsDir) {
-    AsciidoctorTask asciidoctor = (AsciidoctorTask) project.getTasks().getByName("asciidoctor");
-    asciidoctor.dependsOn(testTask);
-    asciidoctor.dependsOn(project.getTasks().getByName("asciidocTemplate"));
+  private void configureAsciidoctorTask() {
+    AsciidoctorTask asciidoctor =
+        (AsciidoctorTask) project.getTasks().getByName(ASCIIDOCTOR_TASK_NAME);
+    asciidoctor.dependsOn(project.getTasks().getByName(ASCIIDOC_TEMPLATE_TASK_NAME));
     asciidoctor.setSourceDir(new File(project.getBuildDir(), "docs/asciidoc"));
     asciidoctor.setOutputDir(new File(project.getBuildDir(), "generated-docs"));
 
