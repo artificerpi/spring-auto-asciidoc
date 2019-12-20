@@ -63,7 +63,7 @@ reckon {
 }
 reckonTagCreate.dependsOn check
 
-publishVersion=publishVersion ? publishVersion.minus('v') : project.version.toString()
+publishVersion = publishVersion ? publishVersion.minus('v') : project.version.toString()
 group = "io.github.artificerpi"
 
 publishing {
