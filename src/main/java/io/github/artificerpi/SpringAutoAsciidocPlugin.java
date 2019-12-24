@@ -20,10 +20,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.asciidoctor.gradle.AsciidoctorPlugin;
 import org.asciidoctor.gradle.AsciidoctorTask;
-import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.ProjectConfigurationException;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.plugins.JavaPlugin;
@@ -55,11 +53,6 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   // Main logic goes here.
   @Override
   public void apply(Project project) {
-    if (!project.getPluginManager().hasPlugin("java")) {
-      throw new ProjectConfigurationException("the java plugin must be applied",
-          new GradleException(JavaPlugin.class.getSimpleName() + " is not applied"));
-    }
-
     this.project = project;
 
     this.snippetsDir = new File(project.getBuildDir(), "generated-snippets");
@@ -67,6 +60,7 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
 
     // Apply fundamental plugins
     project.getPluginManager().apply(AsciidoctorPlugin.class);
+    project.getPluginManager().apply(JavaPlugin.class);
 
     project.afterEvaluate(p -> {
       configureProjectDependencies();
