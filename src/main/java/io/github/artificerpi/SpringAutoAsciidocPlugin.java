@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.asciidoctor.gradle.AsciidoctorPlugin;
 import org.asciidoctor.gradle.AsciidoctorTask;
+import org.gradle.api.GradleException;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
+import org.gradle.api.ProjectConfigurationException;
 import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.DependencySet;
-import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.SourceSet;
@@ -39,7 +39,7 @@ import org.gradle.external.javadoc.JavadocMemberLevel;
 public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   private static final String ASCIIDOCTOR_TASK_NAME = "asciidoctor";
   private static final String DEFAULT_CONTROLLER_TEST_CLASS_NAME_PATTERN =
-      "(\\w+\\-\\w+)-rest-controller-tests";
+      "(\\w+(\\-\\w+)*)-rest-controller-tests";
   private static final String ASCIIDOC_TEMPLATE_TASK_NAME = "asciidocTemplate";
   private static final String JSONDOCLET = "jsondoclet";
   private static final String JSON_DOCLET_TASK = "jsonDoclet";
@@ -55,21 +55,29 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   // Main logic goes here.
   @Override
   public void apply(Project project) {
+    if (!project.getPlugins().hasPlugin(JavaPlugin.class)) {
+      throw new ProjectConfigurationException("the java plugin must be applied",
+          new GradleException(JavaPlugin.class.getSimpleName() + " is not applied"));
+    }
+
     this.project = project;
+
     this.snippetsDir = new File(project.getBuildDir(), "generated-snippets");
     this.javadocJsonDir = new File(project.getBuildDir(), "generated-javadoc-json");
 
     // Apply fundamental plugins
     project.getPluginManager().apply(AsciidoctorPlugin.class);
-    project.getPluginManager().apply(JavaPlugin.class);
 
-    configureProjectDependencies();
-    
-    addJsonDocletTask();
-    addAsciidocTemplateTask();
+    project.afterEvaluate(p -> {
+      configureProjectDependencies();
 
-    configureTestTask();
-    configureAsciidoctorTask();
+      addJsonDocletTask();
+      configureTestTask();
+      addAsciidocTemplateTask();
+
+      configureAsciidoctorTask();
+    });
+
   }
 
 
@@ -79,19 +87,15 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
     configureDependencies(jsonDocletConfig,
         Arrays.asList(SPRING_AUTO_RESTDOCS_JSON_DOCLET_DEPENDENCY + version));
 
-    Configuration compileConfig =
-        project.getConfigurations().getByName(JavaPlugin.TEST_COMPILE_CONFIGURATION_NAME);
-    configureDependencies(compileConfig,
+    Configuration testCompileConfig =
+        project.getConfigurations().findByName(JavaPlugin.TEST_IMPLEMENTATION_CONFIGURATION_NAME);
+    configureDependencies(testCompileConfig,
         Arrays.asList(SPRING_AUTO_RESTDOCS_CORE_DEPENDENCY + version));
   }
 
   private void configureDependencies(Configuration configuration,
       List<String> dependencyNotations) {
-    configuration.getIncoming().beforeResolve((resolvableDependencies) -> {
-      DependencyHandler dependencyHandler = project.getDependencies();
-      DependencySet dependencies = configuration.getDependencies();
-      dependencyNotations.stream().forEach(d -> dependencies.add(dependencyHandler.create(d)));
-    });
+    dependencyNotations.forEach(d -> project.getDependencies().add(configuration.getName(), d));
   }
 
   private void configureTestTask() {
@@ -152,6 +156,8 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
             return dir.getName();
           }
         }).collect(Collectors.toList()));
+
+        project.getLogger().info("Found snippets {}", snippetNameList);
       });
 
       task.doLast(e -> {

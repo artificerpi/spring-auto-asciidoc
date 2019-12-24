@@ -14,26 +14,26 @@
 ```groovy
 plugins {
   // More plugins ...
-  id "io.github.artificerpi.spring-auto-asciidoc" version "0.3"
+  id 'java'
+  id "io.github.artificerpi.spring-auto-asciidoc" version "0.5.3"
 }
 
 // Below your deps configuration ...
 
 asciidoctor {
-    attributes "classname-pattern": "(\\w+)-rest-controller-tests"
+    attributes "classname-pattern": "(\\w+(\\-\\w+)*)-rest-controller-tests"
 }
 ```
 
 No extra configuration is needed!
 
 ## Build and release
-Release of this plugin is managed with `nebula.release` plugin.
+Release of this plugin is managed with `org.ajoberstar.reckon` plugin.
 
 For covenience, just create a new git tag in `<major>.<minor>.<patch>` format, e.g, `0.0.1`.
 
 > Tips: Merge codes and tags ref from master branch into develop again before new release lifecycle.
 
 ```bash
-# create a new tag on master branch for release with gradle command
-./gradlew clean build final
+./gradlew clean build
 ```
