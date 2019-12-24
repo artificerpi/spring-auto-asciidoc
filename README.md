@@ -35,5 +35,5 @@ For covenience, just create a new git tag in `<major>.<minor>.<patch>` format, e
 > Tips: Merge codes and tags ref from master branch into develop again before new release lifecycle.
 
 ```bash
-./gradlew clean build
+./gradlew clean build reckonTagPush -Preckon.stage=final
 ```
