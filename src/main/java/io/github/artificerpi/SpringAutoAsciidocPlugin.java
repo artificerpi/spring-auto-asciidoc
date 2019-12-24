@@ -55,7 +55,7 @@ public class SpringAutoAsciidocPlugin implements Plugin<Project> {
   // Main logic goes here.
   @Override
   public void apply(Project project) {
-    if (!project.getPlugins().hasPlugin(JavaPlugin.class)) {
+    if (!project.getPluginManager().hasPlugin("java")) {
       throw new ProjectConfigurationException("the java plugin must be applied",
           new GradleException(JavaPlugin.class.getSimpleName() + " is not applied"));
     }
